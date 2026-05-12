@@ -101,11 +101,6 @@ input[type="number"].no-pre { padding-left: 10px; padding-right: 24px; }
 .ft-amount.green { color: var(--green); }
 .badge-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .badge { background: var(--g100); border: 1px solid var(--border); border-radius: 20px; padding: 4px 10px; font-size: 11px; color: var(--g600); }
-.ai-btn { width: 100%; padding: 13px; background: var(--blue); color: white; border: none; border-radius: var(--r-sm); font-size: 14px; font-family: 'DM Sans', sans-serif; font-weight: 500; cursor: pointer; transition: background 0.15s; margin-top: 12px; }
-.ai-btn:hover { background: var(--blue-dark); }
-.ai-btn:disabled { background: #B5D4F4; cursor: default; }
-.ai-loading { text-align: center; font-size: 13px; color: var(--g600); padding: 14px; display: none; }
-.ai-out { margin-top: 12px; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 16px; font-size: 13px; color: var(--g800); line-height: 1.75; display: none; background: var(--g50); }
 .rec-box { margin-top: 12px; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 16px; font-size: 13px; color: var(--g800); line-height: 1.75; background: var(--g50); }
 .pm-panel { background: #0C447C; padding: 20px 18px; }
 .pm-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.45); margin-bottom: 4px; }
@@ -213,9 +208,6 @@ input[type="number"].no-pre { padding-left: 10px; padding-right: 24px; }
       <div class="eyebrow">Personalized recommendation</div>
       <div class="sec-sub">Based on your exact numbers.</div>
       <div class="rec-box" id="rec-box"></div>
-      <button class="ai-btn" id="ai-btn" onclick="getAdvice()">Get AI-powered recommendation</button>
-      <div class="ai-loading" id="ai-loading">Generating your recommendation...</div>
-      <div class="ai-out" id="ai-out"></div>
     </div>
   </div>
 
@@ -427,35 +419,6 @@ function generateRec(){
   box.textContent=msg;
 }
 
-async function getAdvice(){
-  const btn=document.getElementById('ai-btn');
-  const loading=document.getElementById('ai-loading');
-  const out=document.getElementById('ai-out');
-  btn.disabled=true;loading.style.display='block';out.style.display='none';
-  const{bal,apr,pay,base}=state;
-  const bPlan=planCalc(bal,bestDur);
-  const saves=base.interest!==null?Math.round(base.interest-bPlan.totalFees):null;
-  try{
-    const res=await fetch('/api/recommend',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        bal:Math.round(bal),apr,pay:Math.round(pay),
-        baseMonths:base.months?fmtMo(base.months):null,
-        baseInterest:base.interest,
-        bestDur,bestMonthly:bPlan.monthly,bestFees:bPlan.totalFees,
-        saves
-      })
-    });
-    const data=await res.json();
-    loading.style.display='none';out.style.display='block';
-    out.textContent=data.text||'Unable to generate advice right now.';
-  }catch(e){
-    loading.style.display='none';out.style.display='block';
-    out.textContent='Unable to connect. Please try again.';
-  }
-  btn.disabled=false;
-}
 update();
 </script>
 </body>
