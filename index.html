@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amex Lending Intelligence · Plan It® Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --blue: #006FCF; --blue-dark: #0060B3; --blue-light: #E6F1FB; --blue-text: #0C447C;
+  --green: #3B6D11; --green-light: #EAF3DE; --green-text: #27500A;
+  --amber: #7A4F00; --amber-light: #FEF3DC;
+  --red: #A32D2D; --red-light: #FCEBEB;
+  --g50: #F7F7F7; --g100: #F0F0F0; --g200: #E2E2E2; --g400: #AAAAAA; --g600: #666; --g800: #1A1A1A;
+  --border: #E2E2E2; --r-sm: 8px; --r-md: 12px; --r-lg: 16px;
+}
+body { font-family: 'DM Sans', sans-serif; background: #ECEEF2; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 28px 16px 64px; color: var(--g800); }
+.app { width: 100%; max-width: 500px; }
+.topbar { background: var(--blue); border-radius: var(--r-lg) var(--r-lg) 0 0; padding: 13px 18px; display: flex; align-items: center; justify-content: space-between; }
+.topbar-left { display: flex; align-items: center; gap: 10px; }
+.bluebox { width: 38px; height: 25px; background: white; border-radius: 3px; display: flex; align-items: center; justify-content: center; }
+.bluebox span { color: var(--blue); font-size: 7.5px; font-weight: 800; letter-spacing: 0.5px; font-family: 'Nunito Sans', sans-serif; }
+.topbar-name { color: white; font-size: 15px; font-weight: 700; font-family: 'Nunito Sans', sans-serif; letter-spacing: 0.2px; }
+.topbar-sub { color: rgba(255,255,255,0.6); font-size: 11px; margin-top: 1px; }
+.surface { background: white; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+.bal-panel { background: var(--blue); padding: 18px 18px 22px; color: white; }
+.bal-eyebrow { font-size: 10px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-bottom: 3px; }
+.bal-amount { font-size: 42px; font-weight: 800; font-family: 'Nunito Sans', sans-serif; letter-spacing: -1px; line-height: 1; margin-bottom: 16px; }
+.bal-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.bal-stat { background: rgba(255,255,255,0.14); border-radius: var(--r-sm); padding: 9px 11px; }
+.bal-stat-label { font-size: 10px; color: rgba(255,255,255,0.6); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 2px; }
+.bal-stat-val { font-size: 15px; font-weight: 500; color: white; font-family: 'Nunito Sans', sans-serif; }
+.sec { padding: 18px 18px 0; }
+.eyebrow { font-size: 10px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--g400); margin-bottom: 5px; }
+.sec-sub { font-size: 12px; color: var(--g600); line-height: 1.5; margin-top: 2px; }
+.divider { height: 1px; background: var(--g200); margin: 18px 0 0; }
+.inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 10px; font-weight: 500; letter-spacing: 0.8px; text-transform: uppercase; color: var(--g600); }
+.field-wrap { position: relative; }
+.field-pre, .field-suf { position: absolute; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--g400); pointer-events: none; }
+.field-pre { left: 10px; } .field-suf { right: 10px; }
+input[type="number"] { width: 100%; padding: 9px 10px 9px 24px; font-size: 15px; font-family: 'Nunito Sans', sans-serif; font-weight: 500; border-radius: var(--r-sm); border: 1px solid var(--border); background: white; color: var(--g800); outline: none; transition: border-color 0.15s; -moz-appearance: textfield; }
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+input[type="number"]:focus { border-color: var(--blue); }
+input[type="number"].no-pre { padding-left: 10px; padding-right: 24px; }
+.smart-banner { margin-top: 14px; border-radius: var(--r-md); padding: 14px 16px; }
+.smart-banner.good { background: var(--green-light); border: 1px solid #C0DD97; }
+.smart-banner.warn { background: var(--amber-light); border: 1px solid #F5C97A; }
+.smart-banner.bad { background: var(--red-light); border: 1px solid #F09595; }
+.smart-label { font-size: 10px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; margin-bottom: 4px; }
+.smart-banner.good .smart-label { color: var(--green); }
+.smart-banner.warn .smart-label { color: var(--amber); }
+.smart-banner.bad .smart-label { color: var(--red); }
+.smart-text { font-size: 13px; line-height: 1.55; }
+.smart-banner.good .smart-text { color: var(--green-text); }
+.smart-banner.warn .smart-text { color: #5A3800; }
+.smart-banner.bad .smart-text { color: #6B1A1A; }
+.plan-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; margin-top: 12px; }
+.plan-card { border: 1px solid var(--border); border-radius: var(--r-sm); padding: 11px 8px; cursor: pointer; background: white; transition: border-color 0.12s; text-align: left; position: relative; margin-top: 10px; }
+.plan-card:hover { border-color: var(--blue); }
+.plan-card.sel { border: 2px solid var(--blue); background: var(--blue-light); }
+.plan-card.best::after { content: 'Best value'; position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: var(--green); color: white; font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
+.pc-dur { font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: var(--g400); margin-bottom: 4px; }
+.plan-card.sel .pc-dur { color: var(--blue-text); }
+.pc-val { font-size: 15px; font-weight: 700; font-family: 'Nunito Sans', sans-serif; color: var(--g800); }
+.plan-card.sel .pc-val { color: var(--blue); }
+.pc-val span { font-size: 10px; font-weight: 400; }
+.pc-rate { font-size: 11px; color: var(--g600); margin-top: 2px; }
+.pc-total { font-size: 11px; color: var(--g600); margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--g200); }
+.pc-save { font-size: 11px; color: var(--green); font-weight: 500; margin-top: 3px; }
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.cmp { background: var(--g50); border-radius: var(--r-sm); padding: 13px 14px; border: 1px solid var(--border); }
+.cmp-label { font-size: 10px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; color: var(--g400); margin-bottom: 5px; }
+.cmp-val { font-size: 26px; font-weight: 700; font-family: 'Nunito Sans', sans-serif; }
+.cmp-val.red { color: var(--red); } .cmp-val.green { color: var(--green); }
+.cmp-note { font-size: 11px; color: var(--g600); margin-top: 2px; line-height: 1.4; }
+.chart-wrap { margin-top: 12px; position: relative; height: 200px; }
+.spend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.spend-cat { border: 1px solid var(--border); border-radius: var(--r-sm); padding: 11px 12px; background: white; cursor: pointer; transition: border-color 0.12s; }
+.spend-cat:hover { border-color: var(--blue); }
+.spend-cat.active { border: 1.5px solid var(--blue); background: var(--blue-light); }
+.spend-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+.spend-name { font-size: 13px; font-weight: 500; color: var(--g800); }
+.spend-cat.active .spend-name { color: var(--blue-text); }
+.spend-pct { font-size: 12px; font-weight: 600; font-family: 'Nunito Sans', sans-serif; color: var(--g600); }
+.spend-bar-bg { height: 4px; background: var(--g200); border-radius: 2px; }
+.spend-bar-fill { height: 4px; border-radius: 2px; background: var(--blue); }
+.spend-amt { font-size: 12px; color: var(--g600); margin-top: 4px; }
+.spend-insight { margin-top: 10px; font-size: 12px; color: var(--g600); line-height: 1.55; padding: 10px 12px; background: var(--g50); border-radius: var(--r-sm); border: 1px solid var(--border); display: none; }
+.features-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.feat-card { border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px; background: white; }
+.ft-tag { display: inline-block; background: var(--blue-light); color: var(--blue-text); font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; padding: 3px 8px; border-radius: 20px; margin-bottom: 8px; }
+.ft-tag.green { background: var(--green-light); color: var(--green-text); }
+.ft-name { font-size: 14px; font-weight: 500; color: var(--g800); margin-bottom: 4px; }
+.ft-desc { font-size: 12px; color: var(--g600); line-height: 1.5; }
+.ft-amount { font-size: 19px; font-weight: 600; font-family: 'Nunito Sans', sans-serif; color: var(--blue); margin-top: 10px; }
+.ft-amount.green { color: var(--green); }
+.badge-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.badge { background: var(--g100); border: 1px solid var(--border); border-radius: 20px; padding: 4px 10px; font-size: 11px; color: var(--g600); }
+.ai-btn { width: 100%; padding: 13px; background: var(--blue); color: white; border: none; border-radius: var(--r-sm); font-size: 14px; font-family: 'DM Sans', sans-serif; font-weight: 500; cursor: pointer; transition: background 0.15s; margin-top: 12px; }
+.ai-btn:hover { background: var(--blue-dark); }
+.ai-btn:disabled { background: #B5D4F4; cursor: default; }
+.ai-loading { text-align: center; font-size: 13px; color: var(--g600); padding: 14px; display: none; }
+.ai-out { margin-top: 12px; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 16px; font-size: 13px; color: var(--g800); line-height: 1.75; display: none; background: var(--g50); }
+.pm-panel { background: #0C447C; padding: 20px 18px; }
+.pm-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.45); margin-bottom: 4px; }
+.pm-title { font-size: 18px; font-weight: 700; font-family: 'Nunito Sans', sans-serif; color: white; letter-spacing: 0.3px; margin-bottom: 3px; }
+.pm-sub { font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.5; margin-bottom: 16px; }
+.pm-item { background: rgba(255,255,255,0.07); border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: 8px; border-left: 3px solid rgba(255,255,255,0.2); }
+.pm-item:last-child { margin-bottom: 0; }
+.pm-tag { font-size: 9px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 5px; }
+.pm-tag.pain { color: #F09595; } .pm-tag.fix { color: #9FE1CB; } .pm-tag.metric { color: #FAC775; }
+.pm-text { font-size: 12px; color: rgba(255,255,255,0.82); line-height: 1.6; }
+.bottom-bar { background: white; border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--r-lg) var(--r-lg); padding: 16px 18px; }
+.footer-note { font-size: 11px; color: var(--g400); line-height: 1.6; padding-bottom: 12px; border-bottom: 1px solid var(--g200); margin-bottom: 12px; }
+.built-by { text-align: center; font-size: 12px; color: var(--g400); line-height: 1.7; }
+.name-tag { display: inline-block; background: var(--blue-light); color: var(--blue-text); font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-bottom: 5px; font-family: 'Nunito Sans', sans-serif; letter-spacing: 0.3px; }
+.built-by a { color: var(--blue); text-decoration: none; font-weight: 500; }
+@media (max-width: 440px) { .plan-grid { grid-template-columns: repeat(2,1fr); } .bal-stats { grid-template-columns: 1fr 1fr; } .bal-amount { font-size: 38px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="bluebox"><span>AMEX</span></div>
+      <div>
+        <div class="topbar-name">American Express</div>
+        <div class="topbar-sub">Lending · Pay It Plan It®</div>
+      </div>
+    </div>
+    <svg width="20" height="20" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"/></svg>
+  </div>
+
+  <div class="surface">
+    <div class="bal-panel">
+      <div class="bal-eyebrow">Current balance</div>
+      <div class="bal-amount" id="bal-display">$4,500</div>
+      <div class="bal-stats">
+        <div class="bal-stat"><div class="bal-stat-label">APR</div><div class="bal-stat-val" id="apr-display">24.99%</div></div>
+        <div class="bal-stat"><div class="bal-stat-label">Payment</div><div class="bal-stat-val" id="pay-display">$150/mo</div></div>
+        <div class="bal-stat"><div class="bal-stat-label">Payoff</div><div class="bal-stat-val" id="payoff-display">-</div></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="eyebrow">Your details</div>
+      <div class="sec-sub">Enter your numbers - the tool will calculate which Plan It® option saves you the most.</div>
+      <div class="inputs-grid">
+        <div class="field"><label>Balance</label><div class="field-wrap"><span class="field-pre">$</span><input type="number" id="inp-bal" value="4500" min="100" max="50000" oninput="update()"></div></div>
+        <div class="field"><label>APR</label><div class="field-wrap"><input type="number" class="no-pre" id="inp-apr" value="24.99" min="1" max="40" step="0.01" oninput="update()"><span class="field-suf">%</span></div></div>
+        <div class="field"><label>Monthly payment</label><div class="field-wrap"><span class="field-pre">$</span><input type="number" id="inp-pay" value="150" min="10" oninput="update()"></div></div>
+        <div class="field"><label>New charges/mo</label><div class="field-wrap"><span class="field-pre">$</span><input type="number" id="inp-new" value="0" min="0" oninput="update()"></div></div>
+      </div>
+      <div id="smart-banner" class="smart-banner good">
+        <div class="smart-label" id="smart-label"></div>
+        <div class="smart-text" id="smart-text"></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="sec">
+      <div class="eyebrow">Plan It® options</div>
+      <div class="sec-sub">Fixed monthly fee, zero interest. Best value is automatically calculated based on your APR - not just hardcoded.</div>
+      <div class="plan-grid" id="plan-grid"></div>
+    </div>
+
+    <div class="sec">
+      <div class="eyebrow">What you'd actually pay</div>
+      <div class="compare-grid">
+        <div class="cmp"><div class="cmp-label">Carrying interest</div><div class="cmp-val red" id="cmp-interest">-</div><div class="cmp-note" id="cmp-months">-</div></div>
+        <div class="cmp"><div class="cmp-label">Plan It® fees</div><div class="cmp-val green" id="cmp-planit">-</div><div class="cmp-note" id="cmp-plan-note">-</div></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="eyebrow">Balance over time</div>
+      <div class="chart-wrap"><canvas id="chart" role="img" aria-label="Line chart comparing balance payoff under current payments vs Plan It">Balance payoff over time.</canvas></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="sec">
+      <div class="eyebrow">What's driving your balance</div>
+      <div class="sec-sub">A real version pulls from your transaction history. Tap a category to see how Plan It® applies.</div>
+      <div class="spend-grid" id="spend-grid"></div>
+      <div class="spend-insight" id="spend-insight"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="sec">
+      <div class="eyebrow">Your payment options</div>
+      <div class="features-grid">
+        <div class="feat-card"><span class="ft-tag">Plan It®</span><div class="ft-name">Fixed installments</div><div class="ft-desc">Equal monthly payments with a fixed fee. No compounding interest. Up to 10 active plans.</div><div class="ft-amount" id="ft-planit">-/mo</div></div>
+        <div class="feat-card"><span class="ft-tag green">Pay It®</span><div class="ft-name">Quick payoff</div><div class="ft-desc">Pay purchases under $100 immediately from the app to keep your balance low throughout the month.</div><div class="ft-amount green">Under $100</div></div>
+      </div>
+      <div class="badge-row">
+        <span class="badge">&#10003; Rewards still earned</span>
+        <span class="badge">&#10003; No credit check</span>
+        <span class="badge">&#10003; Fixed fee shown upfront</span>
+        <span class="badge">&#10003; Up to 10 active plans</span>
+      </div>
+    </div>
+
+    <div class="sec" style="padding-bottom:18px">
+      <div class="eyebrow">AI-powered recommendation</div>
+      <div class="sec-sub">Get a personalized breakdown based on your exact numbers.</div>
+      <button class="ai-btn" id="ai-btn" onclick="getAdvice()">Get my personalized recommendation</button>
+      <div class="ai-loading" id="ai-loading">Generating your recommendation...</div>
+      <div class="ai-out" id="ai-out"></div>
+    </div>
+  </div>
+
+  <div class="pm-panel">
+    <div class="pm-eyebrow">Product thinking</div>
+    <div class="pm-title">What I'd put in the backlog</div>
+    <div class="pm-sub">Three real user pain points this concept addresses - grounded in user research and app feedback - with how I'd measure success.</div>
+    <div class="pm-item">
+      <div class="pm-tag pain">User pain point #1 - cost opacity</div>
+      <div class="pm-text">Cardmembers don't understand how much compounding interest actually costs them. The current app shows your balance but not the total cost of carrying it. This tool surfaces total interest in real dollars proactively - before the user has to go looking for it. User story: "As a cardmember with a balance, I want to see what I'll actually pay in total so I can make an informed decision about Plan It®."</div>
+    </div>
+    <div class="pm-item">
+      <div class="pm-tag pain">User pain point #2 - reactive surfacing</div>
+      <div class="pm-text">Plan It® is only surfaced after a purchase - not when a balance is already high and compounding. A proactive in-app nudge when balance crosses a threshold (e.g. $500+) would convert more users and reduce revolving interest exposure. This is a low-effort, high-impact backlog item with clear A/B test potential.</div>
+    </div>
+    <div class="pm-item">
+      <div class="pm-tag pain">User pain point #3 - decision paralysis</div>
+      <div class="pm-text">The app presents all Plan It® durations equally with no guidance on which is best. Users have to do the math themselves. This tool auto-surfaces the best value duration based on APR - removing friction and improving feature adoption without requiring the user to understand fee rate math.</div>
+    </div>
+    <div class="pm-item">
+      <div class="pm-tag fix">Proposed feature - lending nudge</div>
+      <div class="pm-text">An AI-powered in-app card that appears when balance exceeds a threshold, showing exactly how much Plan It® saves vs. carrying interest, with a one-tap enrollment flow. Personalized by APR, balance, and payment history. Estimated impact: 15-25% lift in Plan It® adoption among high-balance cardmembers.</div>
+    </div>
+    <div class="pm-item">
+      <div class="pm-tag metric">Success metrics</div>
+      <div class="pm-text">Plan It® adoption rate among cardmembers with balances &gt;$500 · Reduction in revolving balance month-over-month · NPS on lending features · Time-to-enroll from balance threshold trigger · Interest revenue impact vs. increased cardmember satisfaction and retention</div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="footer-note">Concept prototype exploring how Amex's Lending Financials team could surface smarter payoff intelligence in the app. Plan It® fee rates are illustrative, based on Amex's published terms (up to 1.33%/month). Calculations are estimates and do not constitute financial advice.</div>
+    <div class="built-by">
+      <div class="name-tag">Product concept · Katya Balin</div><br>
+      CS + D1 Tennis · GWU '26 &nbsp;·&nbsp; <a href="https://linkedin.com/in/katya-balin" target="_blank">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/katyabalin" target="_blank">GitHub</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const DURATIONS = [3,6,12,24];
+const FEE_RATES = {3:0.0062,6:0.0079,12:0.0098,24:0.0133};
+const SPEND_CATS = [
+  {name:'Travel',pct:34,insight:'Travel purchases over $100 are prime Plan It® candidates. Splitting a $1,500 flight into 12 monthly payments of ~$136 costs $180 in fees vs. $290+ in interest at 24.99% APR.'},
+  {name:'Dining',pct:22,insight:'Most dining is under $100 - ideal for Pay It®. Paying these off immediately throughout the month keeps your revolving balance lower and protects your credit utilization.'},
+  {name:'Shopping',pct:28,insight:'Large retail purchases are a classic Plan It® use case. A $500 purchase on a 6-month plan costs ~$24 in fees - vs. $62+ in interest paying the minimum.'},
+  {name:'Other',pct:16,insight:'Miscellaneous charges under $100 are best handled with Pay It®. Clearing these throughout the month means less balance accumulating interest by statement close.'},
+];
+let selDur=12, bestDur=12, chartInst=null, state={};
+
+function fmt(n){return '$'+Math.round(n).toLocaleString();}
+function fmtMo(m){if(!m||m>600)return 'never';if(m<12)return m+'mo';const y=Math.floor(m/12),mo=m%12;return y+'y'+(mo?' '+mo+'mo':'');}
+
+function payoffCalc(bal,apr,pay,newCh){
+  const r=apr/100/12;let b=bal,ti=0,mo=0,hist=[Math.round(b)];
+  if(pay<=b*r+newCh)return{months:null,interest:null,total:null,hist:[b]};
+  while(b>0.5&&mo<600){const i=b*r;ti+=i;b=b+i+newCh-pay;if(b<0)b=0;mo++;hist.push(Math.round(b));}
+  return{months:mo,interest:Math.round(ti),total:Math.round(bal+ti),hist};
+}
+
+function planCalc(bal,dur){
+  const fee=FEE_RATES[dur],monthly=bal/dur+bal*fee,totalFees=Math.round(bal*fee*dur);
+  let hist=[Math.round(bal)],b=bal;
+  for(let i=0;i<dur;i++){b=Math.max(0,b-bal/dur);hist.push(Math.round(b));}
+  return{monthly:Math.round(monthly),totalFees,hist,dur};
+}
+
+function findBest(bal,pay){
+  const r=pay/bal;
+  if(r>=0.25)return 3;
+  if(r>=0.10)return 6;
+  if(r>=0.05)return 12;
+  return 24;
+}
+
+function renderPlanGrid(bal,baseInterest){
+  const g=document.getElementById('plan-grid');g.innerHTML='';
+  DURATIONS.forEach(d=>{
+    const p=planCalc(bal,d),saves=baseInterest!==null?baseInterest-p.totalFees:null;
+    const div=document.createElement('div');
+    div.className='plan-card'+(d===selDur?' sel':'')+(d===bestDur?' best':'');
+    div.onclick=()=>{selDur=d;update();};
+    div.innerHTML=`<div class="pc-dur">${d}mo</div>
+      <div class="pc-val">${fmt(p.monthly)}<span>/mo</span></div>
+      <div class="pc-rate">${(FEE_RATES[d]*100).toFixed(2)}%/mo fee</div>
+      <div class="pc-total">Total fees: ${fmt(p.totalFees)}</div>
+      ${saves!==null&&saves>0?`<div class="pc-save">Save ${fmt(saves)}</div>`:''}`;
+    g.appendChild(div);
+  });
+}
+
+function renderSpendGrid(bal){
+  const g=document.getElementById('spend-grid');g.innerHTML='';
+  SPEND_CATS.forEach(cat=>{
+    const div=document.createElement('div');div.className='spend-cat';
+    div.onclick=()=>{
+      document.querySelectorAll('.spend-cat').forEach(el=>el.classList.remove('active'));
+      div.classList.add('active');
+      const ins=document.getElementById('spend-insight');
+      ins.style.display='block';ins.textContent=cat.insight;
+    };
+    const est=Math.round(bal*cat.pct/100);
+    div.innerHTML=`<div class="spend-row"><span class="spend-name">${cat.name}</span><span class="spend-pct">${cat.pct}%</span></div>
+      <div class="spend-bar-bg"><div class="spend-bar-fill" style="width:${cat.pct}%"></div></div>
+      <div class="spend-amt">${fmt(est)} est.</div>`;
+    g.appendChild(div);
+  });
+}
+
+function updateBanner(bal,apr,base,bPlan){
+  const banner=document.getElementById('smart-banner');
+  const label=document.getElementById('smart-label');
+  const text=document.getElementById('smart-text');
+  banner.className='smart-banner';
+  if(base.months===null){
+    banner.classList.add('bad');
+    label.textContent='Your balance is growing';
+    text.textContent=`Your monthly payment doesn't cover the ${apr.toFixed(2)}% APR interest. Plan It® converts your balance to a fixed ${bestDur}-month plan at ${fmt(bPlan.monthly)}/month - the clearest path to paid off.`;
+    return;
+  }
+  const saves=base.interest-bPlan.totalFees;
+  if(saves>50){
+    banner.classList.add('good');
+    label.textContent=`Plan It® ${bestDur}-month plan saves you ${fmt(saves)}`;
+    text.textContent=`At ${apr.toFixed(2)}% APR, carrying this balance costs ${fmt(base.interest)} over ${fmtMo(base.months)}. The ${bestDur}-month Plan It® option cuts that to ${fmt(bPlan.totalFees)} in fixed fees - saving you ${fmt(saves)} and locking in a clear payoff date.`;
+  } else if(base.months<=6){
+    banner.classList.add('warn');
+    label.textContent="You're nearly paid off";
+    text.textContent=`At your payment rate you'll be done in ${fmtMo(base.months)} with ${fmt(base.interest)} in interest. Since you're paying aggressively, Plan It® won't save much here - keep your current pace.`;
+  } else {
+    banner.classList.add('warn');
+    label.textContent='Plan It® is roughly cost-neutral here';
+    text.textContent=`Your payment is keeping interest relatively low. Plan It® gives you a predictable fixed payment but may not save significantly vs. your current path. Consider a shorter duration.`;
+  }
+}
+
+function update(){
+  const bal=parseFloat(document.getElementById('inp-bal').value)||0;
+  const apr=parseFloat(document.getElementById('inp-apr').value)||0;
+  const pay=parseFloat(document.getElementById('inp-pay').value)||0;
+  const newCh=parseFloat(document.getElementById('inp-new').value)||0;
+
+  document.getElementById('bal-display').textContent=fmt(bal);
+  document.getElementById('apr-display').textContent=apr.toFixed(2)+'%';
+  document.getElementById('pay-display').textContent=fmt(pay)+'/mo';
+
+  const base=payoffCalc(bal,apr,pay,newCh);
+  document.getElementById('payoff-display').textContent=base.months?fmtMo(base.months):'∞';
+
+  bestDur=findBest(bal,pay);
+  selDur=bestDur;
+
+  const plan=planCalc(bal,selDur);
+  state={bal,apr,pay,newCh,base,plan,selDur};
+
+  updateBanner(bal,apr,base,planCalc(bal,bestDur));
+  renderPlanGrid(bal,base.interest);
+  renderSpendGrid(bal);
+
+  document.getElementById('cmp-interest').textContent=base.interest!==null?fmt(base.interest):'∞';
+  document.getElementById('cmp-months').textContent=base.months?'over '+fmtMo(base.months):'balance never paid off';
+  document.getElementById('cmp-planit').textContent=fmt(plan.totalFees);
+  document.getElementById('cmp-plan-note').textContent=selDur+' months · '+fmt(plan.monthly)+'/mo';
+  document.getElementById('ft-planit').textContent=fmt(plan.monthly)+'/mo';
+  drawChart(base,plan);
+}
+
+function drawChart(base,plan){
+  const maxLen=Math.min(Math.max(base.months||30,plan.dur)+2,72);
+  const labels=Array.from({length:maxLen+1},(_,i)=>i===0?'Now':'Mo '+i);
+  const pad=(arr,len)=>{const a=arr.slice(0,len+1);while(a.length<len+1)a.push(0);return a;};
+  if(chartInst)chartInst.destroy();
+  chartInst=new Chart(document.getElementById('chart'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'Carrying interest',data:pad(base.hist,maxLen),borderColor:'#E24B4A',borderWidth:2,tension:0.35,fill:false,pointRadius:0},
+      {label:'Plan It® ('+plan.dur+'mo)',data:pad(plan.hist,maxLen),borderColor:'#006FCF',borderWidth:2.5,tension:0.35,fill:false,pointRadius:0,borderDash:[6,3]},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:true,position:'bottom',labels:{font:{size:11,family:'Barlow'},boxWidth:14,boxHeight:2,padding:14,color:'#AAAAAA'}},
+        tooltip:{callbacks:{label:c=>' '+c.dataset.label+': $'+c.parsed.y.toLocaleString()}}
+      },
+      scales:{
+        x:{ticks:{font:{size:10,family:'Barlow'},color:'#AAAAAA',maxTicksLimit:9,autoSkip:true},grid:{color:'rgba(0,0,0,0.04)'},border:{color:'#E2E2E2'}},
+        y:{ticks:{font:{size:10,family:'Barlow'},color:'#AAAAAA',callback:v=>'$'+v.toLocaleString()},grid:{color:'rgba(0,0,0,0.04)'},border:{color:'#E2E2E2'}}
+      }
+    }
+  });
+}
+
+async function getAdvice(){
+  const btn=document.getElementById('ai-btn');
+  const loading=document.getElementById('ai-loading');
+  const out=document.getElementById('ai-out');
+  btn.disabled=true;loading.style.display='block';out.style.display='none';
+  const{bal,apr,pay,base,plan}=state;
+  const bPlan=planCalc(bal,bestDur);
+  const saves=base.interest!==null?Math.round(base.interest-bPlan.totalFees):null;
+  const prompt=`You are a warm American Express financial advisor. A cardmember's situation:
+Balance: $${Math.round(bal)}, APR: ${apr}%, Monthly payment: $${Math.round(pay)}
+Payoff carrying interest: ${base.months?fmtMo(base.months):'never - payment too low'}, Total interest: ${base.interest!==null?'$'+base.interest:'growing'}
+Best Plan It® option (auto-calculated): ${bestDur} months at $${bPlan.monthly}/mo, fees $${bPlan.totalFees}
+${saves!==null?'Would save: $'+saves+' vs carrying interest':''}
+Currently viewing: ${selDur}-month plan at $${plan.monthly}/mo, fees $${plan.totalFees}
+
+Write 3 sentences. Be specific with dollar amounts. Tell them clearly which option is best and why. Warm and direct, not robotic. No bullets or headers.`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();
+    const text=data.content?.find(b=>b.type==='text')?.text||'Unable to generate advice right now.';
+    loading.style.display='none';out.style.display='block';out.textContent=text;
+  }catch(e){loading.style.display='none';out.style.display='block';out.textContent='Unable to connect. Please try again.';}
+  btn.disabled=false;
+}
+update();
+</script>
+</body>
+</html>
