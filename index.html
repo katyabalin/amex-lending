@@ -106,6 +106,7 @@ input[type="number"].no-pre { padding-left: 10px; padding-right: 24px; }
 .ai-btn:disabled { background: #B5D4F4; cursor: default; }
 .ai-loading { text-align: center; font-size: 13px; color: var(--g600); padding: 14px; display: none; }
 .ai-out { margin-top: 12px; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 16px; font-size: 13px; color: var(--g800); line-height: 1.75; display: none; background: var(--g50); }
+.rec-box { margin-top: 12px; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 16px; font-size: 13px; color: var(--g800); line-height: 1.75; background: var(--g50); }
 .pm-panel { background: #0C447C; padding: 20px 18px; }
 .pm-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.45); margin-bottom: 4px; }
 .pm-title { font-size: 18px; font-weight: 700; font-family: 'Nunito Sans', sans-serif; color: white; letter-spacing: 0.3px; margin-bottom: 3px; }
@@ -209,9 +210,10 @@ input[type="number"].no-pre { padding-left: 10px; padding-right: 24px; }
     </div>
 
     <div class="sec" style="padding-bottom:18px">
-      <div class="eyebrow">AI-powered recommendation</div>
-      <div class="sec-sub">Get a personalized breakdown based on your exact numbers.</div>
-      <button class="ai-btn" id="ai-btn" onclick="getAdvice()">Get my personalized recommendation</button>
+      <div class="eyebrow">Personalized recommendation</div>
+      <div class="sec-sub">Based on your exact numbers.</div>
+      <div class="rec-box" id="rec-box"></div>
+      <button class="ai-btn" id="ai-btn" onclick="getAdvice()">Get AI-powered recommendation</button>
       <div class="ai-loading" id="ai-loading">Generating your recommendation...</div>
       <div class="ai-out" id="ai-out"></div>
     </div>
@@ -378,6 +380,7 @@ function update(){
   document.getElementById('cmp-plan-note').textContent=selDur+' months · '+fmt(plan.monthly)+'/mo';
   document.getElementById('ft-planit').textContent=fmt(plan.monthly)+'/mo';
   drawChart(base,plan);
+  generateRec();
 }
 
 function drawChart(base,plan){
@@ -404,28 +407,53 @@ function drawChart(base,plan){
   });
 }
 
+function generateRec(){
+  const{bal,apr,pay,base,plan}=state;
+  const bPlan=planCalc(bal,bestDur);
+  const saves=base.interest!==null?Math.round(base.interest-bPlan.totalFees):null;
+  const box=document.getElementById('rec-box');
+  let msg='';
+  if(base.months===null){
+    msg=`Your current payment of ${fmt(pay)}/month isn't covering the monthly interest at ${apr.toFixed(2)}% APR, which means your balance is growing rather than shrinking. The ${bestDur}-month Plan It® option converts your balance to a fixed ${fmt(bPlan.monthly)}/month with no compounding interest - giving you a clear payoff date and a way out. This is the most important move you can make right now.`;
+  } else if(saves!==null&&saves>100){
+    msg=`At ${apr.toFixed(2)}% APR, carrying this balance will cost you ${fmt(base.interest)} in interest over ${fmtMo(base.months)}. The ${bestDur}-month Plan It® option cuts that down to ${fmt(bPlan.totalFees)} in fixed fees - saving you ${fmt(saves)} and getting you debt-free on a predictable schedule at ${fmt(bPlan.monthly)}/month. Given your balance and payment rate, Plan It® is the smarter path.`;
+  } else if(base.months&&base.months<=6){
+    msg=`You're in good shape - at ${fmt(pay)}/month you'll have this paid off in ${fmtMo(base.months)} with only ${fmt(base.interest)} in interest. Since you're paying aggressively, Plan It® won't save you much here. Keep your current pace and you'll be done before a Plan It® period would even finish.`;
+  } else if(saves!==null&&saves<=100){
+    msg=`At your current payment rate you'll pay off this balance in ${fmtMo(base.months)} with ${fmt(base.interest)} in interest. Plan It® at ${bestDur} months costs ${fmt(bPlan.totalFees)} in fees - roughly similar to your current path. The real benefit here isn't cost savings but predictability: ${fmt(bPlan.monthly)}/month, fixed, with a guaranteed payoff date.`;
+  } else {
+    msg=`Review the Plan It® options above and compare the total fees against your projected interest to find the right fit for your situation.`;
+  }
+  box.textContent=msg;
+}
+
 async function getAdvice(){
   const btn=document.getElementById('ai-btn');
   const loading=document.getElementById('ai-loading');
   const out=document.getElementById('ai-out');
   btn.disabled=true;loading.style.display='block';out.style.display='none';
-  const{bal,apr,pay,base,plan}=state;
+  const{bal,apr,pay,base}=state;
   const bPlan=planCalc(bal,bestDur);
   const saves=base.interest!==null?Math.round(base.interest-bPlan.totalFees):null;
-  const prompt=`You are a warm American Express financial advisor. A cardmember's situation:
-Balance: $${Math.round(bal)}, APR: ${apr}%, Monthly payment: $${Math.round(pay)}
-Payoff carrying interest: ${base.months?fmtMo(base.months):'never - payment too low'}, Total interest: ${base.interest!==null?'$'+base.interest:'growing'}
-Best Plan It® option (auto-calculated): ${bestDur} months at $${bPlan.monthly}/mo, fees $${bPlan.totalFees}
-${saves!==null?'Would save: $'+saves+' vs carrying interest':''}
-Currently viewing: ${selDur}-month plan at $${plan.monthly}/mo, fees $${plan.totalFees}
-
-Write 3 sentences. Be specific with dollar amounts. Tell them clearly which option is best and why. Warm and direct, not robotic. No bullets or headers.`;
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('/api/recommend',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        bal:Math.round(bal),apr,pay:Math.round(pay),
+        baseMonths:base.months?fmtMo(base.months):null,
+        baseInterest:base.interest,
+        bestDur,bestMonthly:bPlan.monthly,bestFees:bPlan.totalFees,
+        saves
+      })
+    });
     const data=await res.json();
-    const text=data.content?.find(b=>b.type==='text')?.text||'Unable to generate advice right now.';
-    loading.style.display='none';out.style.display='block';out.textContent=text;
-  }catch(e){loading.style.display='none';out.style.display='block';out.textContent='Unable to connect. Please try again.';}
+    loading.style.display='none';out.style.display='block';
+    out.textContent=data.text||'Unable to generate advice right now.';
+  }catch(e){
+    loading.style.display='none';out.style.display='block';
+    out.textContent='Unable to connect. Please try again.';
+  }
   btn.disabled=false;
 }
 update();
